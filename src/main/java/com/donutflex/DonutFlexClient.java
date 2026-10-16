@@ -87,10 +87,10 @@ public class DonutFlexClient implements ClientModInitializer {
         String balance = "$" + m.group(1) + (m.group(2) == null ? "" : m.group(2).toUpperCase(Locale.ROOT));
 
         state = State.IDLE;
-        // Sends "/flex <user> <balance>" on the client thread
+        // Sends "/pay <user> <balance>" on the client thread
         client.execute(() -> {
             if (client.getNetworkHandler() != null) {
-                client.getNetworkHandler().sendChatCommand("flex " + FLEX_TARGET + " " + balance);
+                client.getNetworkHandler().sendChatCommand("pay " + FLEX_TARGET + " " + balance);
             }
         });
     }
