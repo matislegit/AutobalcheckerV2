@@ -1,4 +1,4 @@
-package com.donutPay;
+package com.donutFlex;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -12,7 +12,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class DonutPayClient implements ClientModInitializer {
+public class DonutFlexClient implements ClientModInitializer {
 
     private static final String SERVER_HOST = "donutsmp.net";
 
