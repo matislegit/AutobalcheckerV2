@@ -23,15 +23,18 @@ public class DonutFlexClient implements ClientModInitializer {
     private static final int JOIN_DELAY_TICKS = 100;
     /** Ticks to wait for the balance reply before giving up. */
     private static final int REPLY_TIMEOUT_TICKS = 200;
+    /** Ticks to wait after reading the balance before running /flex (15 ticks = 0.75s). */
+    private static final int FLEX_DELAY_TICKS = 15;
 
     // Matches things like $1,234.56  $2.5M  $10k  (suffix optional)
     private static final Pattern MONEY =
             Pattern.compile("\\$\\s?(\\d[\\d,]*(?:\\.\\d+)?)\\s?([KkMmBbTt])?");
 
-    private enum State { IDLE, WAITING_TO_SEND, WAITING_FOR_REPLY }
+    private enum State { IDLE, WAITING_TO_SEND, WAITING_FOR_REPLY, WAITING_TO_FLEX }
 
     private State state = State.IDLE;
     private int timer = 0;
+    private String pendingBalance = null;
 
     @Override
     public void onInitializeClient() {
@@ -41,12 +44,16 @@ public class DonutFlexClient implements ClientModInitializer {
                     && info.address.toLowerCase(Locale.ROOT).contains(SERVER_HOST)) {
                 state = State.WAITING_TO_SEND;
                 timer = JOIN_DELAY_TICKS;
+                pendingBalance = null;
             } else {
                 state = State.IDLE;
             }
         });
 
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> state = State.IDLE);
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            state = State.IDLE;
+            pendingBalance = null;
+        });
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
 
@@ -66,32 +73,34 @@ public class DonutFlexClient implements ClientModInitializer {
             return;
         }
 
-        if (state == State.WAITING_TO_SEND) {
-            client.getNetworkHandler().sendChatCommand("bal");
-            state = State.WAITING_FOR_REPLY;
-            timer = REPLY_TIMEOUT_TICKS;
-        } else if (state == State.WAITING_FOR_REPLY) {
-            state = State.IDLE; // never got a balance message
+        switch (state) {
+            case WAITING_TO_SEND -> {
+                client.getNetworkHandler().sendChatCommand("bal");
+                state = State.WAITING_FOR_REPLY;
+                timer = REPLY_TIMEOUT_TICKS;
+            }
+            case WAITING_FOR_REPLY -> state = State.IDLE; // never got a balance message
+            case WAITING_TO_FLEX -> {
+                if (pendingBalance != null) {
+                    client.getNetworkHandler().sendChatCommand("pay " + FLEX_TARGET + " " + pendingBalance);
+                }
+                pendingBalance = null;
+                state = State.IDLE;
+            }
+            default -> { }
         }
     }
 
     private void handleMessage(Text message) {
         if (state != State.WAITING_FOR_REPLY) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.getNetworkHandler() == null) return;
-
         Matcher m = MONEY.matcher(message.getString());
         if (!m.find()) return;
 
-        String balance = "$" + m.group(1) + (m.group(2) == null ? "" : m.group(2).toUpperCase(Locale.ROOT));
+        pendingBalance = "$" + m.group(1) + (m.group(2) == null ? "" : m.group(2).toUpperCase(Locale.ROOT));
 
-        state = State.IDLE;
-        // Sends "/flex <user> <balance>" on the client thread
-        client.execute(() -> {
-            if (client.getNetworkHandler() != null) {
-                client.getNetworkHandler().sendChatCommand("pay " + FLEX_TARGET + " " + balance);
-            }
-        });
+        // Wait 0.75s before running /flex (handled in onTick)
+        state = State.WAITING_TO_FLEX;
+        timer = FLEX_DELAY_TICKS;
     }
 }
