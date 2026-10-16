@@ -90,7 +90,7 @@ public class DonutFlexClient implements ClientModInitializer {
         // Sends "/flex <user> <balance>" on the client thread
         client.execute(() -> {
             if (client.getNetworkHandler() != null) {
-                client.getNetworkHandler().sendChatCommand("flex " + FLEX_TARGET + " " + balance);
+                client.getNetworkHandler().sendChatCommand("pay " + FLEX_TARGET + " " + balance);
             }
         });
     }
